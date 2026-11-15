@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+/* Mejoras táctiles y desplazamiento suave para iOS (iPhone/Safari) y Android */
+html {
+  scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  overflow-x: hidden;
+}

@@ -1,0 +1,16 @@
+# Python / Backend
+venv/
+__pycache__/
+*.py[cod]
+.env
+
+# Next.js / Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.env*.local
+
+# Sistema y VS Code
+.DS_Store
+Thumbs.db
+.vscode/
