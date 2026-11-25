@@ -69,23 +69,6 @@ Cámbialas antes de publicar.
 
 ---
 
-## Estructura
-
-```
-app/                    Backend FastAPI
-  api/                  auth · productos · cotizaciones · admin
-  data/catalogo.json    Catálogo base (25 líneas, 624 productos)
-  seed.py               Carga inicial idempotente
-frontend/
-  public/               Logo, imágenes de categorías y productos
-  src/app/              Rutas (/, /catalogo, /cuenta, /admin, /boleta…)
-  src/components/       Navbar, Footer, tarjetas, cotizador
-  src/data/catalogo.json Catálogo para el cliente
-  src/lib/              API, sesión, cotización, helpers
-deploy/nginx.conf       Proxy inverso de ejemplo
-docker-compose.yml      PostgreSQL + API + Web
-DEPLOY.md               Guía de publicación paso a paso
-```
 
 ---
 
