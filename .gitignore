@@ -1,14 +1,23 @@
 # Python / Backend
 venv/
+.venv/
 __pycache__/
 *.py[cod]
 .env
+*.db
+*.sqlite3
 
 # Next.js / Frontend
 frontend/node_modules/
 frontend/.next/
 frontend/out/
 frontend/.env*.local
+*.tsbuildinfo
+
+# Datos temporales y herramientas
+.tmp/
+respaldos/
+*.log
 
 # Sistema y VS Code
 .DS_Store

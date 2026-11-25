@@ -1,149 +1,281 @@
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
-from typing import List, Optional
 from datetime import datetime
-from app.models import RoleEnum, StatusCotizacionEnum
+from typing import List, Optional
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
+
+from app.models import AuthProviderEnum, RoleEnum, StatusCotizacionEnum
 
 
-# ==========================================
-# 1. SCHEMAS DE USUARIO (User)
-# ==========================================
+# ==========================================================================
+# Usuarios y autenticación
+# ==========================================================================
 class UserBase(BaseModel):
-    rut: str = Field(..., example="12.345.678-9")
-    nombre: str = Field(..., min_length=2, example="Juan Pérez")
-    email: EmailStr = Field(..., example="juan@empresa.cl")
-    telefono: str = Field(..., example="+56912345678")
+    nombre: str = Field(..., min_length=2, max_length=120, examples=["Juan Pérez"])
+    email: EmailStr = Field(..., examples=["juan@empresa.cl"])
+    telefono: Optional[str] = Field(None, max_length=30, examples=["+56912345678"])
+    rut: Optional[str] = Field(None, max_length=15, examples=["12.345.678-9"])
+
 
 class UserCreate(UserBase):
-    password: str = Field(..., min_length=6, description="Contraseña sin encriptar")
-    role: Optional[RoleEnum] = RoleEnum.CLIENTE
+    password: str = Field(..., min_length=6, max_length=128)
+
+
+class UserAdminCreate(UserCreate):
+    role: RoleEnum = RoleEnum.VENDEDOR
+
 
 class UserUpdate(BaseModel):
-    nombre: Optional[str] = None
-    email: Optional[EmailStr] = None
+    nombre: Optional[str] = Field(None, min_length=2, max_length=120)
     telefono: Optional[str] = None
+    rut: Optional[str] = None
+    email: Optional[EmailStr] = None
+
+
+class UserAdminUpdate(BaseModel):
     role: Optional[RoleEnum] = None
+    is_active: Optional[bool] = None
 
-class UserLogin(BaseModel):
-    rut_o_email: str
+
+class LoginRequest(BaseModel):
+    email: str = Field(..., description="Correo o RUT del usuario")
     password: str
+    remember: bool = False
 
-class UserResponse(UserBase):
+
+class GoogleLoginRequest(BaseModel):
+    credential: str
+
+
+class PasswordChange(BaseModel):
+    password_actual: str
+    password_nueva: str = Field(..., min_length=6)
+
+
+class UserResponse(BaseModel):
     id: str
+    rut: Optional[str] = None
+    nombre: str
+    email: EmailStr
+    telefono: Optional[str] = None
     role: RoleEnum
-    created_at: datetime
+    auth_provider: AuthProviderEnum
+    avatar_url: Optional[str] = None
+    is_active: bool = True
+    created_at: Optional[datetime] = None
+    last_login: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 
 
-# ==========================================
-# 2. SCHEMAS DE CATEGORÍA (Category)
-# ==========================================
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserResponse
+
+
+# ==========================================================================
+# Categorías
+# ==========================================================================
 class CategoryBase(BaseModel):
-    nombre: str = Field(..., example="Bolsas Industriales")
-    slug: str = Field(..., example="bolsas-industriales")
+    nombre: str
+    slug: str
+    nombre_corto: Optional[str] = None
+    grupo: Optional[str] = None
+    descripcion: Optional[str] = None
+    imagen_url: Optional[str] = None
+    orden: int = 0
+    destacada: bool = False
+
 
 class CategoryCreate(CategoryBase):
     pass
 
+
 class CategoryUpdate(BaseModel):
     nombre: Optional[str] = None
     slug: Optional[str] = None
+    nombre_corto: Optional[str] = None
+    grupo: Optional[str] = None
+    descripcion: Optional[str] = None
+    imagen_url: Optional[str] = None
+    orden: Optional[int] = None
+    destacada: Optional[bool] = None
+    activa: Optional[bool] = None
+
 
 class CategoryResponse(CategoryBase):
     id: str
+    total_productos: int = 0
 
     model_config = ConfigDict(from_attributes=True)
 
 
-# ==========================================
-# 3. SCHEMAS DE PRODUCTO (Product)
-# ==========================================
+# ==========================================================================
+# Productos y variantes (medidas)
+# ==========================================================================
+class VariantBase(BaseModel):
+    sku: str
+    medida: str
+    precio: int = Field(..., ge=0)
+    precio_anterior: Optional[int] = Field(None, ge=0)
+    unidad: str = "unidad"
+    stock: int = Field(0, ge=0)
+
+
+class VariantCreate(VariantBase):
+    pass
+
+
+class VariantUpdate(BaseModel):
+    sku: Optional[str] = None
+    medida: Optional[str] = None
+    precio: Optional[int] = Field(None, ge=0)
+    precio_anterior: Optional[int] = Field(None, ge=0)
+    unidad: Optional[str] = None
+    stock: Optional[int] = Field(None, ge=0)
+    activo: Optional[bool] = None
+
+
+class VariantResponse(VariantBase):
+    id: str
+    activo: bool = True
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ProductBase(BaseModel):
-    sku: str = Field(..., example="BOL-IND-001")
-    nombre: str = Field(..., example="Manga Polietileno Alta Densidad 100 micras")
-    descripcion: Optional[str] = Field(None, example="Rollo de 50 kilos resistente a tracción")
-    precio_base: int = Field(..., gt=0, description="Precio neto en CLP", example=25990)
-    stock: int = Field(default=0, ge=0, example=150)
+    sku: str
+    nombre: str
+    descripcion: Optional[str] = None
     imagen_url: Optional[str] = None
+    unidad: str = "unidad"
+    etiqueta: Optional[str] = None
+    destacado: bool = False
     category_id: Optional[str] = None
 
+
 class ProductCreate(ProductBase):
-    pass
+    variantes: List[VariantCreate] = Field(default_factory=list)
+
 
 class ProductUpdate(BaseModel):
     sku: Optional[str] = None
     nombre: Optional[str] = None
     descripcion: Optional[str] = None
-    precio_base: Optional[int] = Field(None, gt=0)
-    stock: Optional[int] = Field(None, ge=0)
     imagen_url: Optional[str] = None
+    unidad: Optional[str] = None
+    etiqueta: Optional[str] = None
+    destacado: Optional[bool] = None
+    activo: Optional[bool] = None
     category_id: Optional[str] = None
+
 
 class ProductResponse(ProductBase):
     id: str
-    category: Optional[CategoryResponse] = None
+    precio_base: int = 0
+    stock: int = 0
+    activo: bool = True
+    categoria_slug: Optional[str] = None
+    categoria_nombre: Optional[str] = None
+    variantes: List[VariantResponse] = Field(default_factory=list)
+    created_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 
 
-# ==========================================
-# 4. SCHEMAS DE ÍTEMS DE COTIZACIÓN (CotizacionItem)
-# ==========================================
+class ProductListResponse(BaseModel):
+    total: int
+    items: List[ProductResponse]
+
+
+# ==========================================================================
+# Cotizaciones
+# ==========================================================================
 class CotizacionItemCreate(BaseModel):
-    product_id: str
-    cantidad: int = Field(..., gt=0, example=10)
-
-class CotizacionItemResponse(BaseModel):
-    id: str
-    product_id: str
-    cantidad: int
-    precio_unitario: int
-    product: Optional[ProductResponse] = None
-
-    model_config = ConfigDict(from_attributes=True)
+    variant_id: Optional[str] = None
+    product_id: Optional[str] = None
+    cantidad: int = Field(..., gt=0, le=100000)
 
 
-# ==========================================
-# 5. SCHEMAS DE COTIZACIÓN (Cotizacion)
-# ==========================================
 class CotizacionCreate(BaseModel):
-    rut: str = Field(..., example="76.123.456-K")
-    nombre: str = Field(..., example="Comercializadora del Sur SpA")
-    email: EmailStr = Field(..., example="compras@surspa.cl")
-    telefono: str = Field(..., example="+56987654321")
+    rut: Optional[str] = None
+    nombre: str = Field(..., min_length=2, max_length=160)
+    email: EmailStr
+    telefono: Optional[str] = None
+    empresa: Optional[str] = None
+    direccion: Optional[str] = None
+    comentarios: Optional[str] = None
     items: List[CotizacionItemCreate] = Field(..., min_length=1)
+
 
 class CotizacionStatusUpdate(BaseModel):
     estado: StatusCotizacionEnum
 
+
+class CotizacionItemResponse(BaseModel):
+    id: str
+    product_id: Optional[str] = None
+    variant_id: Optional[str] = None
+    nombre_producto: str
+    medida: Optional[str] = None
+    unidad: Optional[str] = None
+    cantidad: int
+    precio_unitario: int
+    subtotal: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class CotizacionResponse(BaseModel):
     id: str
     folio: Optional[int] = None
-    user_id: str
+    user_id: Optional[str] = None
+    rut: Optional[str] = None
+    nombre_contacto: str
+    email: EmailStr
+    telefono: Optional[str] = None
+    empresa: Optional[str] = None
+    direccion: Optional[str] = None
+    comentarios: Optional[str] = None
     total_neto: int
     iva: int
     total_total: int
     estado: StatusCotizacionEnum
-    created_at: datetime
-    user: Optional[UserResponse] = None
-    items: List[CotizacionItemResponse] = []
+    created_at: Optional[datetime] = None
+    items: List[CotizacionItemResponse] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
 
 
-# ==========================================
-# 6. SCHEMAS DE AUDITORÍA Y SEGURIDAD (AuditLog)
-# ==========================================
-class AuditLogCreate(BaseModel):
-    user_id: Optional[str] = None
-    accion: str
-    ip_address: str
+class CotizacionListResponse(BaseModel):
+    total: int
+    items: List[CotizacionResponse]
 
+
+# ==========================================================================
+# Auditoría / panel
+# ==========================================================================
 class AuditLogResponse(BaseModel):
     id: str
     user_id: Optional[str] = None
     accion: str
-    ip_address: str
+    detalles: Optional[str] = None
+    ip_address: Optional[str] = None
     timestamp: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AdminStats(BaseModel):
+    productos: int
+    categorias: int
+    cotizaciones: int
+    cotizaciones_pendientes: int
+    usuarios: int
+    ventas_cotizadas: int
+    ultimas_cotizaciones: List[CotizacionResponse] = Field(default_factory=list)
+
+
+class MensajeResponse(BaseModel):
+    status: str = "ok"
+    mensaje: str

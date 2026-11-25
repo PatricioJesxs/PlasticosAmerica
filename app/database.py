@@ -1,23 +1,24 @@
-from sqlalchemy import create_engine 
-from sqlalchemy.orm import declarative_base , sessionmaker
+from sqlalchemy import create_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
 
-DATABASE_URL = "postgresql://postgres:Pcorn7708@localhost:5432/plasticosamerica_db"
+from app.config import DATABASE_URL
 
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,
+    connect_args=connect_args,
+    future=True,
+)
+
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, future=True)
 Base = declarative_base()
 
+
 def get_db():
-    db=SessionLocal()
-    try: 
+    db = SessionLocal()
+    try:
         yield db
     finally:
         db.close()
-        
-
-
-
-
-
-
-
