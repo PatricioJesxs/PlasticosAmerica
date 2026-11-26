@@ -58,14 +58,7 @@ cd frontend
 npm install
 npm run dev
 ```
-Sitio: http://localhost:3000
 
-### Acceso de administrador
-```
-Correo:     admin@plasticosamerica.cl
-Contraseña: Admin1234!
-```
-Cámbialas antes de publicar.
 
 ---
 
