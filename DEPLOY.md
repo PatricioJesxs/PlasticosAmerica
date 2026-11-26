@@ -83,12 +83,7 @@ npm run dev
 
 - Sitio: http://localhost:3000
 
-### Credenciales iniciales
-```
-Correo:     admin@plasticosamerica.cl
-Contraseña: Admin1234!
-```
-Cámbialas antes de publicar (ver sección 5).
+
 
 ---
 
